@@ -351,6 +351,9 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         except Exception as e:
             logger.error('mouse_reset exception', e)
 
+    def jump(self):
+        self.send_key('space')
+
 
 white_color = {
     'r': (253, 255),  # Red range
