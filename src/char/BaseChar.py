@@ -308,10 +308,6 @@ class BaseChar:
 
     def jump(self):
         self.task.send_key(' ')
-        # self.logger.info(f'jumped')
-
-    def jump(self):
-        self.task.send_key(' ')
         self.logger.info(f'jumped')
 
     def do_get_switch_priority(self, current_char, has_intro=False):
@@ -591,12 +587,6 @@ forte_white_color = {
     'r': (244, 255),  # Red range
     'g': (246, 255),  # Green range
     'b': (250, 255)  # Blue range
-}
-
-forte_empty_color = {
-    'r': (90, 170),  # Red range
-    'g': (90, 170),  # Green range
-    'b': (90, 170)  # Blue range
 }
 
 forte_empty_color = {
