@@ -5,10 +5,10 @@ class Verina(BaseChar):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.step = 1
+        self.flowstep = 1
 
     def reset_state(self):
-        self.step = 1
+        self.flowstep = 1
     
     def do_perform(self):
         if self.has_intro:
