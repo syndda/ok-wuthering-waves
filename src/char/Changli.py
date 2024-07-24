@@ -32,8 +32,9 @@ class Changli(BaseChar):
             self.phoenix=True
             return self.switch_next_char()
         if self.liberation_available and self.phoenix:
-            self.click_liberation(wait_end = False)
-            self.heavy_attack(1.0)
+            self.click_liberation()
+            self.sleep(0.1)
+            self.heavy_attack(0.8)
             self.phoenix = False
         elif self.resonance_available():
             self.send_resonance_key()
