@@ -1,15 +1,14 @@
-import time
-from src.char.BaseChar import BaseChar, Priority
+from src.char.BaseChar import BaseChar
 
 
 class Verina(BaseChar):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.flowstep = 1
+        self.step = 1
 
     def reset_state(self):
-        self.flowstep = 1
+        self.step = 1
     
     def do_perform(self):
         if self.has_intro:
