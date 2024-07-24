@@ -1,4 +1,5 @@
-from src.char.BaseChar import BaseChar
+import time
+from src.char.BaseChar import BaseChar, Priority
 
 
 class Verina(BaseChar):
