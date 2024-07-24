@@ -9,6 +9,7 @@ class Changli(BaseChar):
         super().__init__(*args)
         self.enhanced_normal = False
         self.last_e = 0
+        self.phoenix = False
 
     def reset_state(self):
         self.enhanced_normal = False
@@ -26,17 +27,19 @@ class Changli(BaseChar):
             self.continues_normal_attack(0.5)
         self.enhanced_normal = False
         if self.is_forte_full():
-            self.logger.debug('Changli click heavy attack without ult')
+        #    self.logger.debug('Changli click heavy attack without ult')
             self.heavy_attack(0.8)
+            self.phoenix=True
             return self.switch_next_char()
-        if self.click_liberation():
-            self.sleep(0.1)
-            self.heavy_attack(0.8)
+        if self.liberation_available and self.phoenix:
+            self.click_liberation(wait_end = False)
+            self.heavy_attack(1.0)
+            self.phoenix = False
         elif self.resonance_available():
             self.send_resonance_key()
             self.enhanced_normal = True
             self.normal_attack()
-        elif self.click_echo(1.5):
+        elif self.click_echo(1.45):
             self.logger.debug('Changli click echo success')
             pass
         else:

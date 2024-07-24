@@ -17,7 +17,7 @@ class Encore(BaseChar):
     def do_perform(self):
         target_low_con = False
         if self.has_intro:
-            self.continues_normal_attack(.7)
+            self.continues_normal_attack(0.7)
             self.wait_down()
         elif self.can_resonance_step2(4):
             if self.click_resonance()[0]:

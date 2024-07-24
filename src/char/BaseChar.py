@@ -51,6 +51,7 @@ class BaseChar:
         self.logger = get_logger(self.name)
         self.full_ring_area = 0
         self._is_forte_full = False
+        self._is_forte_empty = False
         self.config = {"_full_ring_area": 0, "_ring_color_index": -1}
         if type(self) is not BaseChar:
             self.config = Config(self.name, self.config)
@@ -301,6 +302,10 @@ class BaseChar:
         else:
             return priority
 
+    def jump(self):
+        self.task.send_key(' ')
+        self.logger.info(f'jumped')
+
     def do_get_switch_priority(self, current_char, has_intro=False):
         priority = 0
         if self.count_liberation_priority() and self.liberation_available():
@@ -422,6 +427,25 @@ class BaseChar:
         self._is_forte_full = white_percent > 0.08
         return self._is_forte_full
 
+    def is_forte_empty(self):
+        box = self.task.box_of_screen(1620 / 3840, 1993 / 2160, 1742 / 3840, 2014 / 2160, name='forte_empty')
+        white_percent = self.task.calculate_color_percentage(forte_empty_color, box)
+        num_labels, stats = get_connected_area_by_color(box.crop_frame(self.task.frame), forte_empty_color,
+                                                        connectivity=8)
+        total_area = 0
+        for i in range(1, num_labels):
+            # Check if the connected component touches the border
+            left, top, width, height, area = stats[i]
+            total_area += area
+        white_percent = total_area / box.width / box.height
+        if self.task.debug:
+            self.task.screenshot(f'{self}_forte_{white_percent}')
+        self.logger.debug(f'is_forte_empty {white_percent}')
+        box.confidence = white_percent
+        self.task.draw_boxes('forte_empty', box)
+        self._is_forte_empty = white_percent < 0.5
+        return self._is_forte_empty
+    
     def liberation_available(self):
         if self.liberation_available_mark:
             return True
@@ -559,6 +583,12 @@ forte_white_color = {
     'r': (244, 255),  # Red range
     'g': (246, 255),  # Green range
     'b': (250, 255)  # Blue range
+}
+
+forte_empty_color = {
+    'r': (90, 170),  # Red range
+    'g': (90, 170),  # Green range
+    'b': (90, 170)  # Blue range
 }
 
 dot_color = {
