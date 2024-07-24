@@ -431,24 +431,24 @@ class BaseChar:
         self._is_forte_full = white_percent > 0.08
         return self._is_forte_full
 
-    def is_forte_empty(self):
-        box = self.task.box_of_screen(1623 / 3840, 1995 / 2160, 1742 / 3840, 2013 / 2160, name='forte_empty')
-        white_percent = self.task.calculate_color_percentage(forte_empty_color, box)
-        # num_labels, stats = get_connected_area_by_color(box.crop_frame(self.task.frame), forte_empty_color,
-                                                        # connectivity=8)
-        # total_area = 0
-        # for i in range(1, num_labels):
-        #     # Check if the connected component touches the border
-        #     left, top, width, height, area = stats[i]
-        #     total_area += area
-        # white_percent = total_area / box.width / box.height
-        # if self.task.debug:
-        #     self.task.screenshot(f'{self}_forte_{white_percent}')
-        self.logger.info(f'is_forte_empty {white_percent}')
-        box.confidence = white_percent
-        self.task.draw_boxes('forte_empty', box)
-        self._is_forte_empty = white_percent > 0.7
-        return self._is_forte_empty
+    # def is_forte_empty(self):
+    #     box = self.task.box_of_screen(1623 / 3840, 1995 / 2160, 1742 / 3840, 2013 / 2160, name='forte_empty')
+    #     white_percent = self.task.calculate_color_percentage(forte_empty_color, box)
+    #     # num_labels, stats = get_connected_area_by_color(box.crop_frame(self.task.frame), forte_empty_color,
+    #                                                     # connectivity=8)
+    #     # total_area = 0
+    #     # for i in range(1, num_labels):
+    #     #     # Check if the connected component touches the border
+    #     #     left, top, width, height, area = stats[i]
+    #     #     total_area += area
+    #     # white_percent = total_area / box.width / box.height
+    #     # if self.task.debug:
+    #     #     self.task.screenshot(f'{self}_forte_{white_percent}')
+    #     self.logger.info(f'is_forte_empty {white_percent}')
+    #     box.confidence = white_percent
+    #     self.task.draw_boxes('forte_empty', box)
+    #     self._is_forte_empty = white_percent < 0.7
+    #     return self._is_forte_empty
     
     def liberation_available(self):
         if self.liberation_available_mark:
