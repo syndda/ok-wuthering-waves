@@ -17,14 +17,15 @@ class Encore(BaseChar):
     def do_perform(self):
         target_low_con = False
         if self.has_intro:
-            self.continues_normal_attack(0.7)
+            self.logger.debug('encore wait intro')
+            self.continues_normal_attack(1.0)
             self.wait_down()
         else:
-            while not self.still_in_liberation() and self.can_resonance_step2(2):
+            while not self.still_in_liberation() and self.can_resonance_step2():
                 if self.click_resonance()[0]:
                     self.last_resonance = 0
                     self.logger.info('try Encore resonance_step2 success')
-                    self.sleep(0.3)
+                    self.sleep(0.2)
                     break
                 else:
                     self.task.next_frame()
@@ -54,7 +55,7 @@ class Encore(BaseChar):
     def count_echo_priority(self):
         return 40
 
-    def can_resonance_step2(self, delay=3.0):
+    def can_resonance_step2(self, delay=2):
         return self.time_elapsed_accounting_for_freeze(self.last_resonance) < delay
 
     def do_get_switch_priority(self, current_char: BaseChar, has_intro=False):
