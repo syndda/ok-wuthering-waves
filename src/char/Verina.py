@@ -26,14 +26,14 @@ class Verina(BaseChar):
                 if self.current_con < 1:
                     self.wait_down()
                     self.logger.info(f'triple land auto')
-                    self.continues_normal_attack(1.1, click_resonance_if_ready_and_return=False, until_con_full=True)
+                    self.continues_normal_attack(1.1, until_con_full=True)
                     self.flowstep =  2
                     return self.switch_next_char()
             elif self.flowstep == 2:
                 if 0.5 < self.current_con < 1 and self.is_forte_full():
                     self.logger.info(f'triple air auto')
                     self.jump()
-                    self.continues_normal_attack(1.55, click_resonance_if_ready_and_return=False, until_con_full=True)
+                    self.continues_normal_attack(1.55, until_con_full=True)
                 self.flowstep = 1
             else:
                 self.heavy_attack()
