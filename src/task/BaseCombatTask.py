@@ -57,7 +57,7 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
 
     def combat_once(self, wait_combat_time=180, wait_before=3):
         self.wait_until(lambda: self.in_combat(), time_out=wait_combat_time, raise_if_not_found=True)
-        # self.sleep(wait_before)
+        self.sleep(wait_before)
         # self.wait_until(lambda: self.in_combat(), time_out=10, raise_if_not_found=True)
         self.load_chars()
         self.info['Combat Count'] = self.info.get('Combat Count', 0) + 1
@@ -310,7 +310,7 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
                 logger.info(f'update char3 to {char.name}')
         else:
             if len(self.chars) == 3:
-                self.chars.pop(0)
+                self.chars = self.chars[:2]
             logger.info(f'team size changed to 2')
 
         for char in self.chars:
