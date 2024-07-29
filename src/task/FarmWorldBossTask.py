@@ -77,7 +77,7 @@ class FarmWorldBossTask(BaseCombatTask):
         if not proceeds:
             raise Exception("can't find the boss proceeds")
 
-        self.wait_feature('gray_teleport', raise_if_not_found=True, time_out=120,
+        self.wait_feature('gray_teleport', raise_if_not_found=True, time_out=200,
                           pre_action=lambda: self.click_box(proceeds[index], relative_x=-1), wait_until_before_delay=5)
         self.sleep(1)
         teleport = self.wait_click_feature('custom_teleport', box=self.box_of_screen(0.48, 0.45, 0.54, 0.58),
@@ -88,6 +88,7 @@ class FarmWorldBossTask(BaseCombatTask):
         self.wait_click_feature('gray_custom_way_point', box=self.box_of_screen(0.62, 0.48, 0.70, 0.86),
                                 raise_if_not_found=True, threshold=0.75, time_out=2)
         self.click_fast_travel()
+        self.wait_in_team_and_world(time_out=30)
 
     def click_fast_travel(self):
         travel = self.wait_feature('fast_travel_custom', raise_if_not_found=True, threshold=0.75)
@@ -169,6 +170,9 @@ class FarmWorldBossTask(BaseCombatTask):
                             in_combat = self.wait_until(self.in_combat, raise_if_not_found=False, time_out=10)
                             if not in_combat:  # try click again
                                 self.walk_until_f(raise_if_not_found=True, time_out=4)
+                        elif boss_name == 'Bell-Borne Geochelone':
+                            logger.info(f'sleep for the Bell-Borne model to appear')
+                            self.sleep(15)
                         try:
                             self.combat_once()
                         except CharDeadException:
