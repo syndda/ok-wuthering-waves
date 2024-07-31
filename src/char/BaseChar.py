@@ -51,6 +51,7 @@ class BaseChar:
         self.logger = get_logger(self.name)
         self.full_ring_area = 0
         self.freeze_durations = []
+        self.last_perform = 0
         self._is_forte_full = False
         self._is_forte_empty = False
         self.config = {"_full_ring_area": 0, "_ring_color_index": -1}
@@ -72,6 +73,7 @@ class BaseChar:
 
     def perform(self):
         # self.wait_down()
+        self.last_perform = time.time()
         self.do_perform()
         self.logger.debug(f'set current char false {self.index}')
 
@@ -84,22 +86,26 @@ class BaseChar:
         self.task.click(*args, **kwargs)
 
     def do_perform(self):
+        if self.has_intro:
+            self.logger.debug('has_intro wait click 1.2 sec')
+            self.continues_normal_attack(1.2, click_resonance_if_ready_and_return=True)
         self.click_liberation(con_less_than=1)
         if self.click_resonance()[0]:
             return self.switch_next_char()
         if self.click_echo():
             return self.switch_next_char()
-        self.task.click()
+        self.continues_normal_attack(0.31)
         self.switch_next_char()
 
     def has_cd(self, box_name):
         box = self.task.get_box_by_name(f'box_{box_name}')
         cropped = box.crop_frame(self.task.frame)
-        num_labels, stats = get_connected_area_by_color(cropped, dot_color, connectivity=8)
+        num_labels, stats, labels = get_connected_area_by_color(cropped, dot_color, connectivity=8, gray_range=20)
         big_area_count = 0
         has_dot = False
         number_count = 0
         invalid_count = 0
+        # output_image = cropped.copy()
         for i in range(1, num_labels):
             # Check if the connected co  mponent touches the border
             left, top, width, height, area = stats[i]
@@ -107,24 +113,39 @@ class BaseChar:
                 1] > 20 / 3840 / 2160:
                 big_area_count += 1
             if left > 0 and top > 0 and left + width < box.width and top + height < box.height:
-                # self.logger.debug(f"{box_name} Area of connected component {i}: {area} pixels {width}x{height}")
+                # self.logger.debug(f"{box_name} Area of connected component {i}: {area} pixels {width}x{height} ")
                 if 16 / 3840 / 2160 <= area / self.task.frame.shape[0] / self.task.frame.shape[
-                    1] <= 60 / 3840 / 2160 and abs(width - height) / (width + height) < 0.3:
+                    1] <= 90 / 3840 / 2160 and abs(width - height) / (
+                        width + height) < 0.3:
+                    # if  top < (
+                    #     box.height / 2) and left > box.width * 0.2 and left + width < box.width * 0.8:
                     has_dot = True
+                    #     self.logger.debug(f"{box_name} multiple dots return False")
+                    #     return False
+                    # dot = stats[i]
                 elif 25 / 2160 <= height / self.task.screen_height <= 45 / 2160 and 5 / 2160 <= width / self.task.screen_height <= 35 / 2160:
                     number_count += 1
             else:
+                # self.logger.debug(f"{box_name} has invalid return False")
                 invalid_count += 1
+                return False
+
+            # Draw the connected component with a random color
+            # mask = labels == i
+            # output_image[mask] = np.random.randint(0, 255, size=3)
+        # if self.task.debug:
+        #     self.task.screenshot(f'{self}_{box_name}_has_cd', output_image)
         has_cd = invalid_count == 0 and (has_dot and 2 <= number_count <= 3)
+        # self.logger.debug(f'{box_name} has_cd {has_cd} {invalid_count} {number_count} {has_dot}')
         return has_cd
 
     def is_available(self, percent, box_name):
         return percent == 0 or not self.has_cd(box_name)
 
     def switch_out(self):
+        self.last_switch_time = time.time()
         self.is_current_char = False
         self.has_intro = False
-        self.liberation_available_mark = self.liberation_available()
         if self.current_con == 1:
             self.logger.info(f'switch_out at full con set current_con to 0')
             self.current_con = 0
@@ -134,8 +155,10 @@ class BaseChar:
 
     def switch_next_char(self, post_action=None, free_intro=False, target_low_con=False):
         self.is_forte_full()
-        self.last_switch_time = self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro,
-                                                           target_low_con=target_low_con)
+        self.has_intro = False
+        self.liberation_available_mark = self.liberation_available()
+        self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro,
+                                   target_low_con=target_low_con)
 
     def sleep(self, sec, check_combat=True):
         if sec > 0:
@@ -150,6 +173,7 @@ class BaseChar:
         animated = False
         while True:
             if resonance_click_time != 0 and time.time() - resonance_click_time > 8:
+                self.task.in_liberation = False
                 self.logger.error(f'click_resonance too long, breaking {time.time() - resonance_click_time}')
                 self.task.screenshot('click_resonance too long, breaking')
                 break
@@ -284,6 +308,7 @@ class BaseChar:
             if send_click:
                 self.task.click(interval=0.1)
             if self.task.last_liberation - start > 7:
+                self.task.in_liberation = False
                 self.task.raise_not_in_combat('too long a liberation, the boss was killed by the liberation')
             self.task.next_frame()
         duration = time.time() - start
@@ -296,7 +321,7 @@ class BaseChar:
                 self.task.mouse_up
         return clicked
 
-    def add_freeze_duration(self, start, duration, freeze_time=0.2):
+    def add_freeze_duration(self, start, duration, freeze_time=0):
         if duration > freeze_time:
             current_time = time.time()
             self.freeze_durations = [item for item in self.freeze_durations if item[0] <= current_time - 15]
@@ -625,9 +650,9 @@ forte_empty_color = {
 }
 
 dot_color = {
-    'r': (235, 255),  # Red range
-    'g': (235, 255),  # Green range
-    'b': (235, 255)  # Blue range
+    'r': (195, 255),  # Red range
+    'g': (195, 255),  # Green range
+    'b': (195, 255)  # Blue range
 }
 
 con_colors = [
