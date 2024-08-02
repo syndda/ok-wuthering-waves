@@ -210,3 +210,26 @@ msgstr "打开以启用自动拾取声骸"
 msgid "can't find gray_book_boss, make sure f2 is the hotkey for book"
 msgstr "找不到boss列表, 请确认快捷键f2可以打开书"
 
+msgid "1"
+msgstr ""
+
+msgid "Boss1 Echo Pickup Method"
+msgstr "Boss1搜索声骸方法"
+
+msgid "Boss2 Echo Pickup Method"
+msgstr "Boss2搜索声骸方法"
+
+msgid "Boss3 Echo Pickup Method"
+msgstr "Boss3搜索声骸方法"
+
+msgid "Run in Circle"
+msgstr "转圈奔跑"
+
+msgid "Turn Around and Search"
+msgstr "4方向搜索"
+
+msgid "Walk"
+msgstr "后退再前进"
+
+msgid "Death Count"
+msgstr "死亡次数"

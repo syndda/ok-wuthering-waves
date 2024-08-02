@@ -100,7 +100,7 @@ class BaseChar:
     def has_cd(self, box_name):
         box = self.task.get_box_by_name(f'box_{box_name}')
         cropped = box.crop_frame(self.task.frame)
-        num_labels, stats, labels = get_connected_area_by_color(cropped, dot_color, connectivity=8, gray_range=20)
+        num_labels, stats, labels = get_connected_area_by_color(cropped, dot_color, connectivity=8, gray_range=22)
         big_area_count = 0
         has_dot = False
         number_count = 0
@@ -406,7 +406,8 @@ class BaseChar:
         return self.get_current_con() == 1
 
     def get_current_con(self):
-        box = self.task.box_of_screen(1422 / 3840, 1939 / 2160, 1566 / 3840, 2076 / 2160, name='con_full')
+        box = self.task.box_of_screen_scaled(3840, 2160, 1422, 1939, to_x=1566, to_y=2076, name='con_full',
+                                             hcenter=True)
         box.confidence = 0
 
         max_area = 0
@@ -461,7 +462,7 @@ class BaseChar:
         return percent
 
     def is_forte_full(self):
-        box = self.task.box_of_screen(2251 / 3840, 1993 / 2160, 2311 / 3840, 2016 / 2160, name='forte_full')
+        box = self.task.box_of_screen_scaled(3840, 2160, 2251, 1993, 2311, 2016, name='forte_full', hcenter=True)
         white_percent = self.task.calculate_color_percentage(forte_white_color, box)
         # num_labels, stats = get_connected_area_by_color(box.crop_frame(self.task.frame), forte_white_color,
         #                                                 connectivity=8)

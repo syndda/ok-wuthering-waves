@@ -42,24 +42,28 @@ class CombatCheck:
             return True
         else:
             self.out_of_combat_reason = reason
-            self._in_combat = False
-            self.boss_lv_mask = None
-            self.boss_lv_template = None
-            self.in_liberation = False  # return True
-            self.has_count_down = False
-            self.last_out_of_combat_time = 0
-            self.last_combat_check = 0
-            self.boss_lv_box = None
-            self.boss_health = None
-            self.boss_health_box = None
+            self.do_reset_to_false()
             return False
+
+    def do_reset_to_false(self):
+        self._in_combat = False
+        self.boss_lv_mask = None
+        self.boss_lv_template = None
+        self.in_liberation = False  # return True
+        self.has_count_down = False
+        self.last_out_of_combat_time = 0
+        self.last_combat_check = 0
+        self.boss_lv_box = None
+        self.boss_health = None
+        self.boss_health_box = None
+        return False
 
     def recent_liberation(self):
         return time.time() - self.last_liberation < 0.3
 
     def check_count_down(self):
-        count_down_area = self.box_of_screen(1820 / 3840, 266 / 2160, 2100 / 3840,
-                                             340 / 2160, name="check_count_down")
+        count_down_area = self.box_of_screen_scaled(3840, 2160, 1820, 266, 2100,
+                                                    340, name="check_count_down", hcenter=True)
         count_down = self.calculate_color_percentage(text_white_color,
                                                      count_down_area)
 
@@ -123,7 +127,7 @@ class CombatCheck:
 
     def find_target_enemy(self):
         start = time.time()
-        target_enemy = self.find_one('target_enemy_white', box=self.box_of_screen(0.25, 0.25, 0.75, 0.75),
+        target_enemy = self.find_one('target_enemy_white', box=self.box_of_screen(0.20, 0.20, 0.8, 0.8, hcenter=True),
                                      use_gray_scale=True, threshold=0.83,
                                      frame_processor=process_target_enemy_area)
         # if self.debug and target_enemy is not None:
@@ -212,7 +216,7 @@ class CombatCheck:
         return self.find_boss_lv_text()
 
     def find_boss_lv_text(self):
-        texts = self.ocr(box=self.box_of_screen(1269 / 3840, 10 / 2160, 2533 / 3840, 140 / 2160),
+        texts = self.ocr(box=self.box_of_screen(1269 / 3840, 10 / 2160, 2533 / 3840, 140 / 2160, hcenter=True),
                          target_height=540, name='boss_lv_text')
         boss_lv_texts = find_boxes_by_name(texts,
                                            [re.compile(r'(?i)^L[V].*')])

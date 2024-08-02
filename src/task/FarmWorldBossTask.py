@@ -17,14 +17,22 @@ class FarmWorldBossTask(BaseCombatTask):
                            'Feilian Beringal',
                            'Mourning Aix', 'Impermanence Heron', 'Lampylumen Myriad', 'Mech Abomination',
                            'Bell-Borne Geochelone']
+        self.find_echo_method = ['Walk', 'Run in Circle', 'Turn Around and Search']
+
         self.weekly_boss_index = {'Bell-Borne Geochelone': 3}
         self.weekly_boss_count = 1  # Bell-Borne Geochelone
         default_config = {
             'Boss1': 'N/A',
+            'Boss1 Echo Pickup Method': 'Turn Around and Search',
             'Boss2': 'N/A',
+            'Boss2 Echo Pickup Method': 'Turn Around and Search',
             'Boss3': 'N/A',
+            'Boss3 Echo Pickup Method': 'Turn Around and Search',
             'Repeat Farm Count': 1000
         }
+        self.config_type['Boss1 Echo Pickup Method'] = {'type': "drop_down", 'options': self.find_echo_method}
+        self.config_type['Boss2 Echo Pickup Method'] = {'type': "drop_down", 'options': self.find_echo_method}
+        self.config_type['Boss3 Echo Pickup Method'] = {'type': "drop_down", 'options': self.find_echo_method}
         default_config.update(self.default_config)
         self.default_config = default_config
         self.config_type["Boss1"] = {'type': "drop_down", 'options': self.boss_names}
@@ -36,7 +44,6 @@ class FarmWorldBossTask(BaseCombatTask):
         }
         self.config_type["Entrance Direction"] = {'type': "drop_down", 'options': ['Forward', 'Backward']}
         self.crownless_pos = (0.9, 0.4)
-        self.last_drop = False
 
     def teleport_to_boss(self, boss_name):
         index = self.boss_names.index(boss_name)
@@ -80,10 +87,11 @@ class FarmWorldBossTask(BaseCombatTask):
         self.wait_feature('gray_teleport', raise_if_not_found=True, time_out=200,
                           pre_action=lambda: self.click_box(proceeds[index], relative_x=-1), wait_until_before_delay=5)
         self.sleep(1)
-        teleport = self.wait_click_feature('custom_teleport', box=self.box_of_screen(0.48, 0.45, 0.54, 0.58),
+        teleport = self.wait_click_feature('custom_teleport_hcenter_vcenter',
+                                           box=self.box_of_screen(0.48, 0.45, 0.54, 0.58),
                                            raise_if_not_found=False, threshold=0.8, time_out=2)
         if not teleport:
-            self.click_relative(0.5, 0.5)
+            self.click_relative(0.5, 0.5, hcenter=True)
         self.sleep(0.5)
         self.wait_click_feature('gray_custom_way_point', box=self.box_of_screen(0.62, 0.48, 0.70, 0.86),
                                 raise_if_not_found=True, threshold=0.75, time_out=2)
@@ -96,7 +104,7 @@ class FarmWorldBossTask(BaseCombatTask):
 
     def wait_book(self):
         gray_book_boss = self.wait_until(
-            lambda: self.find_one('gray_book_boss', vertical_variance=1, horizontal_variance=0.05,
+            lambda: self.find_one('gray_book_boss', vertical_variance=0.8, horizontal_variance=0.05,
                                   threshold=0.7, canny_lower=50,
                                   canny_higher=150) or self.find_one(
                 'gray_book_boss_highlight',
@@ -184,16 +192,16 @@ class FarmWorldBossTask(BaseCombatTask):
                             logger.info(f'sleep for the Boss model to disappear')
                             self.sleep(5)
                         logger.info(f'farm echo move forward walk_until_f to find echo')
-                        if self.walk_until_f(time_out=6, backward_time=1, target_text=self.absorb_echo_text,
-                                             raise_if_not_found=False):  # find and pick echo
-                            logger.debug(f'farm echo found echo move forward walk_until_f to find echo')
-                            self.incr_drop(True)
+                        method = self.config.get(f'Boss{i} Echo Pickup Method', 'Walk')
+
+                        if method == 'Run in Circle':
+                            dropped = self.run_in_circle_to_find_echo()
+                        elif method == 'Turn Around and Search':
+                            dropped = self.turn_and_find_echo()
+                        else:
+                            dropped = self.walk_find_echo()
+                        self.incr_drop(dropped)
 
             if count == 0:
                 self.log_error('must choose at least 1 Boss to Farm', notify=True)
                 return
-
-    def incr_drop(self, dropped):
-        if dropped:
-            self.info['Echo Count'] = self.info.get('Echo Count', 0) + 1
-        self.last_drop = dropped
