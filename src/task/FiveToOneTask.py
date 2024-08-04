@@ -47,6 +47,7 @@ class FiveToOneTask(BaseCombatTask):
 
         self.main_stats = ["攻击", "防御", "生命", "共鸣效率", "冷凝伤害加成", "热熔伤害加成", "导电伤害加成",
                            "气动伤害加成", "衍射伤害加成", "湮灭伤害加成", "治疗效果加成", "暴击", "暴击伤害"]
+        self.fix_map = {'凝夜自霜': '凝夜白霜', '灭伤害加成': '湮灭伤害加成', '行射伤害加成': '衍射伤害加成'}
 
         self.config_type = {}
         for key in self.default_config.keys():
@@ -80,8 +81,9 @@ class FiveToOneTask(BaseCombatTask):
         self.log_info(f'increase cost filter {cost}')
         self.click_relative(0.04, 0.91)
         self.sleep(1)
-        boxes = self.ocr(0.11, 0.45, 0.90, 0.88, target_height=720, log=True)
+        boxes = self.ocr(0.11, 0.31, 0.90, 0.88, target_height=720, log=True)
         self.click(find_boxes_by_name(boxes, names='重置'), after_sleep=1)
+        self.click(find_boxes_by_name(boxes, names='五星'), after_sleep=1)
         self.click(find_boxes_by_name(boxes, names=re.compile(f'ost{cost}')), after_sleep=1)
         self.click(find_boxes_by_name(boxes, names='确定'), after_sleep=1)
         self.click_empty_area()
@@ -97,6 +99,11 @@ class FiveToOneTask(BaseCombatTask):
                 return True
             elif put[0].name == '自动放入':
                 return True
+
+    def fix_ocr_texts(self, texts):
+        for text in texts:
+            if fix := self.fix_map.get(text.name):
+                text.name = fix
 
     def loop_merge(self):
         if self.current_cost == 0:
@@ -122,6 +129,9 @@ class FiveToOneTask(BaseCombatTask):
                 row += 1
                 col = 0
                 self.log_info(f'next row {row, col}')
+                if row == 6:
+                    self.log_error(f'无法凑够五个声骸, 请退出重新开始', notify=True)
+                    return False
             x, y = self.get_pos(row, col)
             col += 1
             lock = self.wait_until(self.find_lock, pre_action=lambda: self.click_relative(x - 0.01, y + 0.01),
@@ -137,6 +147,7 @@ class FiveToOneTask(BaseCombatTask):
                     return False
 
             texts = self.ocr(0.60, 0.40, 0.83, 0.76, name='echo_stats', target_height=720, log=True)
+            self.fix_ocr_texts(texts)
             sets = find_boxes_by_name(texts, self.sets)
             if not sets:
                 self.log_error(f'无法识别声骸套装, 需要打开角色声骸界面,右上角点击切换一下简述', notify=True)
@@ -153,10 +164,6 @@ class FiveToOneTask(BaseCombatTask):
             main_stat = "None"
             if main_stat_box and len(main_stat_box) == 1:
                 main_stat = main_stat_box[0].name
-                if main_stat == "灭伤害加成":
-                    main_stat = "湮灭伤害加成"
-                elif main_stat == "行射伤害加成":
-                    main_stat = "衍射伤害加成"
             if main_stat not in self.main_stats:
                 self.log_error(f'无法识别声骸主属性{main_stat_box}', notify=True)
                 return False
