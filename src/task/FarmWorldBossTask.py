@@ -19,7 +19,7 @@ class FarmWorldBossTask(BaseCombatTask):
                            'Bell-Borne Geochelone']
         self.find_echo_method = ['Walk', 'Run in Circle', 'Turn Around and Search']
 
-        self.weekly_boss_index = {'Bell-Borne Geochelone': 3}
+        self.weekly_boss_index = {'Bell-Borne Geochelone': -1}
         self.weekly_boss_count = 1  # Bell-Borne Geochelone
         default_config = {
             'Boss1': 'N/A',
@@ -96,7 +96,7 @@ class FarmWorldBossTask(BaseCombatTask):
         self.wait_click_feature('gray_custom_way_point', box=self.box_of_screen(0.62, 0.48, 0.70, 0.86),
                                 raise_if_not_found=True, threshold=0.75, time_out=2)
         self.click_fast_travel()
-        self.wait_in_team_and_world(time_out=30)
+        self.wait_in_team_and_world(time_out=120)
 
     def click_fast_travel(self):
         travel = self.wait_feature('fast_travel_custom', raise_if_not_found=True, threshold=0.75)
@@ -182,7 +182,7 @@ class FarmWorldBossTask(BaseCombatTask):
                             logger.info(f'sleep for the Bell-Borne model to appear')
                             self.sleep(15)
                         try:
-                            self.combat_once()
+                            self.combat_once(wait_before=0)
                         except CharDeadException:
                             logger.info(f'char dead try teleport to heal')
                             self.teleport_to_heal()
