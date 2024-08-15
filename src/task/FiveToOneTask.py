@@ -153,16 +153,16 @@ class FiveToOneTask(BaseCombatTask):
 
             if not cost:
                 self.log_error(f'无法识别声骸COST', notify=True)
-                return False
+                return 0, False
 
-            main_stat_boundary = self.box_of_screen(0.66, 0.40, 0.77, 0.47)
+            main_stat_boundary = self.box_of_screen(0.63, 0.40, 0.77, 0.47)
             main_stat_box = find_boxes_within_boundary(texts, main_stat_boundary)
             main_stat = "None"
             if main_stat_box and len(main_stat_box) == 1:
                 main_stat = main_stat_box[0].name
             if main_stat not in self.main_stats:
                 self.log_error(f'无法识别声骸主属性{main_stat_box}', notify=True)
-                return False
+                return 0, False
 
             config_name = f'锁定_{cost}C_{main_stat}'
 
@@ -177,11 +177,11 @@ class FiveToOneTask(BaseCombatTask):
                                            wait_until_before_delay=1.5)
                 if not locked:
                     self.log_info(f'加锁失败 {config_name} {set_name}', notify=True)
-                    return False
+                    return 0, False
                 logger.info(f'加锁成功 {config_name}  {set_name} {main_stat}  {locked}')
                 self.info['加锁数量'] = self.info.get('加锁数量', 0) + 1
                 lock_count += 1
-        return lock_count
+        return lock_count, True
 
     def find_set_name(self, texts=None):
         if texts is None:
@@ -207,14 +207,17 @@ class FiveToOneTask(BaseCombatTask):
                 return False
 
         if self.current_cost != '4':
-            lock_count = self.check_and_lock(start_col)
+            lock_count, success = self.check_and_lock(start_col)
+            if not success:
+                return False
             self.click_empty_area()
         else:
             lock_count = 0
 
         if lock_count > 0:
             logger.info(f'本次加锁 {lock_count} 个, 重新添加5个')
-            self.try_add_or_remove_five()
+            if lock_count != 5:
+                self.try_add_or_remove_five()
             return self.loop_merge(True, start_col=5 - lock_count)
         else:
             logger.info(f'没有加锁 开始合成')
@@ -241,7 +244,7 @@ class FiveToOneTask(BaseCombatTask):
         else:
             add = self.wait_until(self.check_ui, post_action=self.click_empty_area)
         if not add:
-            raise Exception('请在5合1界面开始,并保持声骸未添加状态')
+            raise Exception('请在5合1界面(关闭声骸列表)开始,并保持声骸未添加状态')
         self.click(self.get_box_by_name('data_merge_hcenter_vcenter'))
         self.wait_feature('data_merge_selection', raise_if_not_found=True, threshold=0.75,
                           post_action=self.click_empty_area, time_out=15)

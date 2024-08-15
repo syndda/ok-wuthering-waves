@@ -1,5 +1,7 @@
 import time
 
+from qfluentwidgets import FluentIcon
+
 from ok.feature.Feature import Feature
 from ok.logging.Logger import get_logger
 from src.task.BaseCombatTask import BaseCombatTask, CharDeadException
@@ -44,6 +46,7 @@ class FarmWorldBossTask(BaseCombatTask):
         }
         self.config_type["Entrance Direction"] = {'type': "drop_down", 'options': ['Forward', 'Backward']}
         self.crownless_pos = (0.9, 0.4)
+        self.icon = FluentIcon.GLOBE
 
     def teleport_to_boss(self, boss_name):
         index = self.boss_names.index(boss_name)
@@ -148,7 +151,8 @@ class FarmWorldBossTask(BaseCombatTask):
         self.log_info('click m to open the map')
         self.send_key('m')
         self.sleep(2)
-        self.click_relative(0.68, 0.05)
+        self.click_relative(0.58, 0.05)
+        self.log_info('click abyss')
         self.sleep(1)
         self.click_relative(0.37, 0.42)
         travel = self.wait_feature('gray_teleport', raise_if_not_found=True, time_out=3)

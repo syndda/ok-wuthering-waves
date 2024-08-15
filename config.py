@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from ok.util.path import get_path_in_package
 from src.task.AutoCombatTask import AutoCombatTask
@@ -13,7 +14,8 @@ version = "v5.0.11"
 
 
 def calculate_pc_exe_path(running_path):
-    return running_path
+    game_exe_folder = Path(running_path).parents[3]
+    return str(game_exe_folder / "Wuthering Waves.exe")
 
 
 config = {
@@ -24,6 +26,7 @@ config = {
     'ocr': {
         'lib': 'RapidOCR'
     },
+    'start_timeout': 120,  # default 60
     # required if using feature detection
     'template_matching': {
         'coco_feature_json': os.path.join('assets', '_annotations.coco.json'),
@@ -38,7 +41,10 @@ config = {
         'interaction': 'PostMessage',
         'can_bit_blt': True,  # default false, opengl games does not support bit_blt
         'bit_blt_render_full': True,
-        'check_hdr_and_night_light': True,
+        'check_hdr': False,
+        'force_no_hdr': False,
+        'check_night_light': True,
+        'force_no_night_light': True,
         'require_bg': True
     },
     'supported_resolution': {
