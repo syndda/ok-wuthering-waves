@@ -12,7 +12,8 @@ class Yinlin(BaseChar):
                 self.normal_attack()
             self.heavy_attack()
         elif self.click_resonance(send_click=False)[0]:
-            self.sleep(0.1)
+            if self.is_forte_full() and self.liberation_available():
+                self.click_liberation(add_heavy=True)
         elif self.echo_available():
             echo_key = self.get_echo_key()
             self.sleep(0.1)
