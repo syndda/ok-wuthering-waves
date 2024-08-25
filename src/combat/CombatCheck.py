@@ -99,7 +99,10 @@ class CombatCheck:
             return self.has_count_down
 
     def check_boss(self):
-        current = self.boss_lv_box.crop_frame(self.frame)
+        if self.boss_lv_box is not None:
+            current = self.boss_lv_box.crop_frame(self.frame)
+        else:
+            current = None
         max_val = 0
         if current is not None:
             res = cv2.matchTemplate(current, self.boss_lv_template, cv2.TM_CCOEFF_NORMED, mask=self.boss_lv_mask)
@@ -162,7 +165,7 @@ class CombatCheck:
                 if self.check_count_down():
                     return True
                 if self.boss_lv_template is not None:
-                    if self.check_boss():
+                    if self.wait_until(self.check_boss, time_out=2, wait_until_before_delay=0):
                         return True
                     else:
                         return self.reset_to_false(recheck=False, reason="boss disappear")
@@ -201,7 +204,7 @@ class CombatCheck:
             if self.find_target_enemy():
                 return True
             self.middle_click()
-            return self.wait_until(self.find_target_enemy, time_out=2.5)
+            return self.wait_until(self.find_target_enemy, time_out=2.5, wait_until_before_delay=0)
 
     def check_health_bar(self):
         if self._in_combat:
