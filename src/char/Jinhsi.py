@@ -73,7 +73,7 @@ class Jinhsi(BaseChar):
                 else:
                     self.send_resonance_key()
                     last_op = 'resonance'
-                if self.task.in_liberation:
+                if animation_start != 0:
                     self.logger.info(f'Jinhsi handle_incarnation done')
                     break
             else:
@@ -87,6 +87,8 @@ class Jinhsi(BaseChar):
 
         if not self.click_echo():
             self.task.click()
+
+        self.add_freeze_duration(animation_start)
         # if self.task.debug:
         #     self.task.screenshot(f'handle_incarnation click_resonance end {time.time() - start}')
         self.logger.info(f'handle_incarnation  click_resonance end {time.time() - start}')
@@ -114,11 +116,9 @@ class Jinhsi(BaseChar):
                 continue
             if time.time() - self.last_fly_e_time > 2.5:
                 break
-            if time.time() - start < 4:
+            if time.time() - start < 3:
                 if not clicked_resonance:
                     self.task.click(interval=0.1)
-                else:
-                    clicked_resonance = False
                 continue
             if self.task.debug:
                 self.task.screenshot(f'handle_intro e end {time.time() - start}')
