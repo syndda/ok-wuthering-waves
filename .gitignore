@@ -1,5 +1,6 @@
 updates/
 working/
+update/
 tesseract
 models
 fonts
@@ -12,7 +13,6 @@ __pycache__/
 configs/
 ok/
 ok
-*.exe
 md5.txt
 update.bat
 click_screenshots/
@@ -45,6 +45,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 venv/
+python/
 
 # PyInstaller
 # Usually these files are written by a python script from a template
