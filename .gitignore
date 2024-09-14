@@ -4,13 +4,13 @@ update/
 tesseract
 models
 fonts
-_internal/
 # Byte-compiled / optimized / DLL files
 .idea/
 __pycache__/
 *.py[cod]
 *$py.class
 configs/
+paddle_model/
 ok/
 ok
 md5.txt

@@ -40,9 +40,24 @@ jobs:
         run: |
           echo "tag: ${{ steps.changes.outputs.tag }}"
           echo "changes: ${{ steps.changes.outputs.changes }}"
-          python -m ok.update.package_launcher ${{ steps.tagName.outputs.tag }} CPU
-          mv dist ok-ww
+          
+          python -m ok.update.package_launcher ${{ steps.tagName.outputs.tag }}
+          python -m ok.update.gen_md5 .\dist
+          Copy-Item -Path "dist" -Destination "ok-ww" -Recurse
           7z a -t7z -r "ok-ww-release-${{ steps.tagName.outputs.tag }}.7z" "ok-ww"
+          7z a -tzip -r "ok-ww-${{ steps.tagName.outputs.tag }}.zip" "ok-ww"
+          Remove-Item -Path "ok-ww" -Recurse -Force
+          
+          python -m ok.update.package_full_with_profile ${{ steps.tagName.outputs.tag }} 0
+          python -m ok.update.gen_md5 .\dist
+          Copy-Item -Path "dist" -Destination "ok-ww" -Recurse
+          7z a -t7z -r "ok-ww-Nvidia-GPU-full-${{ steps.tagName.outputs.tag }}.7z" "ok-ww"
+          Remove-Item -Path "ok-ww" -Recurse -Force
+          
+          python -m ok.update.package_full_with_profile ${{ steps.tagName.outputs.tag }} 1
+          python -m ok.update.gen_md5 .\dist
+          Copy-Item -Path "dist" -Destination "ok-ww" -Recurse
+          7z a -t7z -r "ok-ww-CPU-full-${{ steps.tagName.outputs.tag }}.7z" "ok-ww"     
 
         shell: pwsh
 
@@ -55,14 +70,16 @@ jobs:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           body: |
-            下载release.7z文件然后解压缩后运行, 如果需要查找问题
-            最好使用模拟器运行安卓版，可以挂后台，稳定。PC版游戏可能兼容性较差，无法挂后台。
+            ok-ww-Nvidia-GPU-full GPU完整版, 需要英伟达RTX2000显卡以上或部分10显卡, 最新显卡驱动, 不需要再下载依赖,
+            ok-ww-CPU-full CPU完整版, 不需要再下载依赖,
+            ok-ww-release 无依赖版, 安装后需要下载依赖
+            ok-ww.zip zip压缩版, 无法解压7z的可以下载
             更新内容：
-            ${{ steps.changes.outputs.changes }} 
+            ${{ steps.changes.outputs.changes }}
           draft: false
           prerelease: true
 
-      - name: upload-win
+      - name: upload-7z
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,8 +87,34 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./ok-ww-release-${{ steps.tagName.outputs.tag }}.7z
           asset_name: ok-ww-release-${{ steps.tagName.outputs.tag }}.7z
+          asset_content_type: application/x-7z-compressed
+
+      - name: upload-zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ok-ww-${{ steps.tagName.outputs.tag }}.zip
+          asset_name: ok-ww-${{ steps.tagName.outputs.tag }}.zip
           asset_content_type: application/zip
 
+      - name: upload-7z-gpu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ok-ww-Nvidia-GPU-full-${{ steps.tagName.outputs.tag }}.7z
+          asset_name: ok-ww-Nvidia-GPU-full-${{ steps.tagName.outputs.tag }}.7z
+          asset_content_type: application/x-7z-compressed
 
-
-
+      - name: upload-7z-cpu
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./ok-ww-CPU-full-${{ steps.tagName.outputs.tag }}.7z
+          asset_name: ok-ww-CPU-full-${{ steps.tagName.outputs.tag }}.7z
+          asset_content_type: application/x-7z-compressed
