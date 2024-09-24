@@ -1,15 +1,18 @@
 import math
-import re
 import time
 
+import cv2
+import numpy as np
 import win32api
 
-from ok.color.Color import get_connected_area_by_color
+import re
+from ok.color.Color import get_connected_area_by_color, color_range_to_bound
 from ok.config.ConfigOption import ConfigOption
 from ok.feature.FindFeature import FindFeature
 from ok.logging.Logger import get_logger
 from ok.ocr.OCR import OCR
 from ok.util.list import safe_get
+from src import text_white_color
 from src.char import BaseChar
 from src.char.BaseChar import Priority, dot_color
 from src.char.CharFactory import get_char_by_pos
@@ -48,6 +51,33 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         self.combat_start = 0
 
         self.char_texts = ['char_1_text', 'char_2_text', 'char_3_text']
+        self.multiplayer_check_interval = 3
+        self._in_multiplayer = False
+        self._multiplayer_last_check = 0
+
+    def check_in_multiplayer(self):
+        self._multiplayer_last_check = time.time()
+        self._in_multiplayer = self.find_one('multiplayer_world_mark',
+                                             threshold=0.75) is not None
+        return self._in_multiplayer
+
+    def send_key_and_wait_animation(self, key, check_function, total_wait=10, animation_wait=5):
+        start = time.time()
+        animation_start = 0
+        while time.time() - start < total_wait and (
+                animation_start == 0 or time.time() - animation_start < animation_wait):
+            if check_function():
+                if animation_start > 0:
+                    self.in_liberation = False
+                    return
+                else:
+                    self.send_key(key, interval=0.2)
+            else:
+                if animation_start == 0:
+                    animation_start = time.time()
+                self.in_liberation = True
+                self.next_frame()
+        logger.info(f'send_key_and_wait_animation timed out {key}')
 
     def raise_not_in_combat(self, message, exception_type=None):
         logger.error(message)
@@ -56,6 +86,12 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         if exception_type is None:
             exception_type = NotInCombatException
         raise exception_type(message)
+
+    def available(self, name):
+        current = self.calculate_color_percentage(text_white_color,
+                                                  self.get_box_by_name(f'box_{name}'))
+        if current > 0 and not self.has_cd(name):
+            return True
 
     def combat_once(self, wait_combat_time=180, wait_before=1.5):
         self.wait_until(self.in_combat, time_out=wait_combat_time, raise_if_not_found=True,
@@ -78,8 +114,8 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         self.sleep(0.2)
 
     def run_in_circle_to_find_echo(self, circle_count=3):
-        directions = ['w', 'a', 's', 'd']
-        step = 1.2
+        directions = ['w', 'w', 'w', 'w']
+        step = 0.8
         duration = 0.8
         total_index = 0
         for count in range(circle_count):
@@ -92,6 +128,15 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
                 if picked:
                     self.mouse_up(key="right")
                     return True
+
+                self.sleep(0.1)
+                self.send_key_down('a')
+                self.sleep(0.01)
+                self.send_key_up('a')
+                self.sleep(0.1)
+                self.middle_click()
+                self.sleep(1)
+
                 total_index += 1
 
     def switch_next_char(self, current_char, post_action=None, free_intro=False, target_low_con=False):
@@ -173,6 +218,15 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         if post_action:
             post_action()
         logger.info(f'switch_next_char end {(current_char.last_switch_time - start):.3f}s')
+
+    def get_liberation_key(self):
+        return self.key_config['Liberation Key']
+
+    def get_echo_key(self):
+        return self.key_config['Echo Key']
+
+    def get_resonance_key(self):
+        return self.key_config['Resonance Key']
 
     def has_resonance_cd(self):
         return self.has_cd('resonance')
@@ -322,8 +376,73 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
     def get_resonance_percentage(self):
         return self.calculate_color_percentage(white_color, self.get_box_by_name('box_resonance'))
 
+    def is_con_full(self):
+        return self.get_current_con() == 1
+
+    def get_current_con(self):
+        box = self.box_of_screen_scaled(3840, 2160, 1422, 1939, to_x=1566, to_y=2076, name='con_full',
+                                        hcenter=True)
+        box.confidence = 0
+
+        max_area = 0
+        percent = 0
+        max_is_full = False
+        color_index = -1
+        target_index = self.config.get('_ring_color_index', -1)
+        cropped = box.crop_frame(self.frame)
+        for i in range(len(con_colors)):
+            if target_index != -1 and i != target_index:
+                continue
+            color_range = con_colors[i]
+            area, is_full = self.count_rings(cropped, color_range,
+                                             1500 / 3840 / 2160 * self.screen_width * self.screen_height)
+            # self.logger.debug(f'is_con_full test color_range {color_range} {area, is_full}')
+            if is_full:
+                max_is_full = is_full
+                color_index = i
+            if area > max_area:
+                max_area = int(area)
+        if max_is_full:
+            self.logger.info(
+                f'is_con_full found a full ring {self.config.get("_full_ring_area", 0)} -> {max_area}  {color_index}')
+            self.config['_full_ring_area'] = max_area
+            self.config['_ring_color_index'] = color_index
+            self.logger.info(
+                f'is_con_full2 found a full ring {self.config.get("_full_ring_area", 0)} -> {max_area}  {color_index}')
+        if self.config.get('_full_ring_area', 0) > 0:
+            percent = max_area / self.config['_full_ring_area']
+        if not max_is_full and percent >= 1:
+            self.logger.warning(
+                f'is_con_full not full but percent greater than 1, set to 0.99, {percent} {max_is_full}')
+            # self.task.screenshot(
+            #     f'is_con_full not full but percent greater than 1, set to 0.99, {percent} {max_is_full}',
+            #     cropped)
+            percent = 0.99
+        if percent > 1:
+            self.logger.error(f'is_con_full percent greater than 1, set to 1, {percent} {max_is_full}')
+            percent = 1
+        # self.logger.info(
+        #     f'is_con_full {self} {percent} {max_area}/{self.config.get("_full_ring_area", 0)} {color_index} ')
+        # if self.task.debug:
+        #     self.task.screenshot(
+        #         f'is_con_full {self} {percent} {max_area}/{self.config.get("_full_ring_area", 0)} {color_index} ',
+        #         cropped)
+        box.confidence = percent
+        self.draw_boxes(f'is_con_full_{self}', box)
+        if percent > 1:
+            percent = 1
+        return percent
+
+    def in_multiplayer(self):
+        if self._in_multiplayer or self._multiplayer_last_check == 0:
+            return self.check_in_multiplayer()
+        if not self._in_multiplayer and time.time() - self._multiplayer_last_check > self.multiplayer_check_interval:
+            return self.check_in_multiplayer()
+        return self._in_multiplayer
+
     def in_team(self):
-        start = time.time()
+        if self.in_multiplayer():
+            return False, -1, -1
         c1 = self.find_one('char_1_text',
                            threshold=0.75)
         c2 = self.find_one('char_2_text',
@@ -344,6 +463,8 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
             return True, current, exist_count + 1
         else:
             return False, -1, exist_count + 1
+
+        # Function to check if a component forms a ring
 
     def mouse_reset(self):
         # logger.debug("mouse_reset")
@@ -367,6 +488,76 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         except Exception as e:
             logger.error('mouse_reset exception', e)
 
+    def count_rings(self, image, color_range, min_area):
+        # Define the color range
+        lower_bound, upper_bound = color_range_to_bound(color_range)
+
+        image_with_contours = image.copy()
+
+        # Create a binary mask
+        mask = cv2.inRange(image, lower_bound, upper_bound)
+
+        # Find connected components
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+
+        colors = [
+            (0, 255, 0),  # Green
+            (0, 0, 255),  # Red
+            (255, 0, 0),  # Blue
+            (0, 255, 255),  # Yellow
+            (255, 0, 255),  # Magenta
+            (255, 255, 0)  # Cyan
+        ]
+
+        # Function to check if a component forms a ring
+        def is_full_ring(component_mask):
+            # Find contours
+            contours, _ = cv2.findContours(component_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if len(contours) != 1:
+                return False
+            contour = contours[0]
+
+            # Check if the contour is closed by checking if the start and end points are the same
+            # if cv2.arcLength(contour, True) > 0:
+            #     return True
+            # Approximate the contour with polygons.
+            epsilon = 0.05 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+
+            # Check if the polygon is closed (has no gaps) and has a reasonable number of vertices for a ring.
+            if not cv2.isContourConvex(approx) or len(approx) < 4:
+                return False
+
+            # All conditions met, likely a close ring.
+            return True
+
+        # Iterate over each component
+        ring_count = 0
+        is_full = False
+        the_area = 0
+        for label in range(1, num_labels):
+            x, y, width, height, area = stats[label, :5]
+            bounding_box_area = width * height
+            component_mask = (labels == label).astype(np.uint8) * 255
+            contours, _ = cv2.findContours(component_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            color = colors[label % len(colors)]
+            cv2.drawContours(image_with_contours, contours, -1, color, 2)
+            if bounding_box_area >= min_area:
+                # Select a color from the list based on the label index
+                if is_full_ring(component_mask):
+                    is_full = True
+                the_area = area
+                ring_count += 1
+
+        # Save or display the image with contours
+        # cv2.imwrite(f'test\\test_{self}_{is_full}_{the_area}_{lower_bound}.jpg', image_with_contours)
+        if ring_count > 1:
+            is_full = False
+            the_area = 0
+            self.logger.warning(f'is_con_full found multiple rings {ring_count}')
+
+        return the_area, is_full
+
     def jump(self):
         self.send_key('space')
 
@@ -376,3 +567,36 @@ white_color = {
     'g': (253, 255),  # Green range
     'b': (253, 255)  # Blue range
 }
+
+con_colors = [
+    {
+        'r': (205, 235),
+        'g': (190, 222),  # for yellow spectro
+        'b': (90, 130)
+    },
+    {
+        'r': (150, 190),  # Red range
+        'g': (95, 140),  # Green range for purple electric
+        'b': (210, 249)  # Blue range
+    },
+    {
+        'r': (200, 230),  # Red range
+        'g': (100, 130),  # Green range    for red fire
+        'b': (75, 105)  # Blue range
+    },
+    {
+        'r': (60, 95),  # Red range
+        'g': (150, 180),  # Green range    for blue ice
+        'b': (210, 245)  # Blue range
+    },
+    {
+        'r': (70, 110),  # Red range
+        'g': (215, 250),  # Green range    for green wind
+        'b': (155, 190)  # Blue range
+    },
+    {
+        'r': (190, 220),  # Red range
+        'g': (65, 105),  # Green range    for havoc
+        'b': (145, 175)  # Blue range
+    }
+]
