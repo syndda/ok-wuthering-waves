@@ -16,7 +16,7 @@ class Changli(BaseChar):
         else:  
             self.lib_ok = False
 
-    def do_get_switch_priority(self, current_char: BaseChar, has_intro=False):
+    def do_get_switch_priority(self, current_char: BaseChar, has_intro=False, target_low_con=False):
         if self.time_elapsed_accounting_for_freeze(self.last_e) < 4:
             self.logger.info(
                 f'switch priority MIN because e not finished')

@@ -1,7 +1,7 @@
-from src.char.BaseChar import BaseChar
+from src.char.Healer import Healer
 
 
-class Verina(BaseChar):
+class Verina(Healer):
 
     def __init__(self, *args):
         super().__init__(*args)
