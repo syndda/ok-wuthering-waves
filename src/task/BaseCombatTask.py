@@ -1,9 +1,7 @@
-import math
 import time
 
 import cv2
 import numpy as np
-import win32api
 
 import re
 from ok.color.Color import get_connected_area_by_color, color_range_to_bound
@@ -51,15 +49,6 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         self.combat_start = 0
 
         self.char_texts = ['char_1_text', 'char_2_text', 'char_3_text']
-        self.multiplayer_check_interval = 3
-        self._in_multiplayer = False
-        self._multiplayer_last_check = 0
-
-    def check_in_multiplayer(self):
-        self._multiplayer_last_check = time.time()
-        self._in_multiplayer = self.find_one('multiplayer_world_mark',
-                                             threshold=0.75) is not None
-        return self._in_multiplayer
 
     def send_key_and_wait_animation(self, key, check_function, total_wait=10, animation_wait=5):
         start = time.time()
@@ -114,8 +103,8 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
         self.sleep(0.2)
 
     def run_in_circle_to_find_echo(self, circle_count=3):
-        directions = ['w', 'w', 'w', 'w']
-        step = 0.8
+        directions = ['w', 'a', 's', 'd']
+        step = 1.2
         duration = 0.8
         total_index = 0
         for count in range(circle_count):
@@ -128,15 +117,6 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
                 if picked:
                     self.mouse_up(key="right")
                     return True
-
-                self.sleep(0.1)
-                self.send_key_down('a')
-                self.sleep(0.01)
-                self.send_key_up('a')
-                self.sleep(0.1)
-                self.middle_click()
-                self.sleep(1)
-
                 total_index += 1
 
     def switch_next_char(self, current_char, post_action=None, free_intro=False, target_low_con=False):
@@ -435,60 +415,28 @@ class BaseCombatTask(BaseWWTask, FindFeature, OCR, CombatCheck):
             percent = 1
         return percent
 
-    def in_multiplayer(self):
-        if self._in_multiplayer or self._multiplayer_last_check == 0:
-            return self.check_in_multiplayer()
-        if not self._in_multiplayer and time.time() - self._multiplayer_last_check > self.multiplayer_check_interval:
-            return self.check_in_multiplayer()
-        return self._in_multiplayer
-
-    def in_team(self):
-        if self.in_multiplayer():
-            return False, -1, -1
-        c1 = self.find_one('char_1_text',
-                           threshold=0.75)
-        c2 = self.find_one('char_2_text',
-                           threshold=0.75)
-        c3 = self.find_one('char_3_text',
-                           threshold=0.75)
-        arr = [c1, c2, c3]
-        # logger.debug(f'in_team check {arr} time: {(time.time() - start):.3f}s')
-        current = -1
-        exist_count = 0
-        for i in range(len(arr)):
-            if arr[i] is None:
-                if current == -1:
-                    current = i
-            else:
-                exist_count += 1
-        if exist_count == 2 or exist_count == 1:
-            return True, current, exist_count + 1
-        else:
-            return False, -1, exist_count + 1
-
-        # Function to check if a component forms a ring
-
     def mouse_reset(self):
-        # logger.debug("mouse_reset")
-        try:
-            current_position = win32api.GetCursorPos()
-            if self.mouse_pos:
-                distance = math.sqrt(
-                    (current_position[0] - self.mouse_pos[0]) ** 2
-                    + (current_position[1] - self.mouse_pos[1]) ** 2
-                )
-                if distance > 400:
-                    logger.debug(f'move mouse back {self.mouse_pos}')
-                    win32api.SetCursorPos(self.mouse_pos)
-                    self.mouse_pos = None
-                    if self.enabled:
-                        self.handler.post(self.mouse_reset, 1)
-                    return
-            self.mouse_pos = current_position
-            if self.enabled:
-                return self.handler.post(self.mouse_reset, 0.005)
-        except Exception as e:
-            logger.error('mouse_reset exception', e)
+        # # logger.debug("mouse_reset")
+        # try:
+        #     current_position = win32api.GetCursorPos()
+        #     if self.mouse_pos:
+        #         distance = math.sqrt(
+        #             (current_position[0] - self.mouse_pos[0]) ** 2
+        #             + (current_position[1] - self.mouse_pos[1]) ** 2
+        #         )
+        #         if distance > 400:
+        #             logger.debug(f'move mouse back {self.mouse_pos}')
+        #             win32api.SetCursorPos(self.mouse_pos)
+        #             self.mouse_pos = None
+        #             if self.enabled:
+        #                 self.handler.post(self.mouse_reset, 1)
+        #             return
+        #     self.mouse_pos = current_position
+        #     if self.enabled:
+        #         return self.handler.post(self.mouse_reset, 0.005)
+        # except Exception as e:
+        #     logger.error('mouse_reset exception', e)
+        pass
 
     def count_rings(self, image, color_range, min_area):
         # Define the color range
